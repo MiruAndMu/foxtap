@@ -1,0 +1,3 @@
+[workspace]
+members = ["foxtap-common", "foxtap-plugin", "foxtap-relay", "xtask"]
+resolver = "2"

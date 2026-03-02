@@ -1,0 +1,25 @@
+[package]
+name = "foxtap-plugin"
+version = "0.1.0"
+edition = "2021"
+description = "FoxTap VST3 plugin — zero-latency audio tap for streaming"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+foxtap-common = { path = "../foxtap-common" }
+nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git", features = ["assert_process_allocs"] }
+nih_plug_vizia = { git = "https://github.com/robbert-vdh/nih-plug.git" }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_System_Memory",
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_Threading",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Registry",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }

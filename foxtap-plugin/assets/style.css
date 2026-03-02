@@ -1,0 +1,110 @@
+/* FoxTap GUI — Fox Designed, Fox Approved
+ *
+ * Background skin (400x550) covers the entire plugin.
+ * Widgets are absolutely positioned (self-directed) over the background
+ * to align precisely with the dark panels in the art.
+ */
+
+* {
+    font-family: "Noto Sans";
+}
+
+/* === MAIN PANEL === */
+.main-panel {
+    width: 400px;
+    height: 550px;
+}
+
+/* === BACKGROUND IMAGE LAYER === */
+.bg-image {
+    width: 100%;
+    height: 100%;
+    background-image: url("foxtap_bg");
+    position-type: self-directed;
+    left: 0px;
+    top: 0px;
+}
+
+/* === TOGGLE BUTTON — absolutely positioned === */
+param-button.toggle-btn {
+    position-type: self-directed;
+    top: 371px;
+    left: 159px;
+    height: 24px;
+    width: 80px;
+    background-color: #2a180e80;
+    border-color: #5a3a20;
+    border-width: 2px;
+    border-radius: 4px;
+    transition: background-color 100ms;
+    child-left: 1s;
+    child-right: 1s;
+}
+
+param-button.toggle-btn label {
+    color: #cc8844;
+    font-weight: bold;
+    font-size: 13;
+    width: 100%;
+    child-left: 1s;
+    child-right: 1s;
+    text-align: center;
+}
+
+param-button.toggle-btn:hover {
+    background-color: #3a2214a0;
+    transition: background-color 100ms;
+}
+
+param-button.toggle-btn:checked {
+    background-color: #1a3a1880;
+    border-color: #448833;
+    transition: background-color 100ms;
+}
+
+param-button.toggle-btn:checked label {
+    color: #66dd66;
+}
+
+/* === VOLUME SLIDER — absolutely positioned === */
+param-slider.volume-slider {
+    position-type: self-directed;
+    top: 432px;
+    left: 35px;
+    width: 330px;
+    height: 38px;
+    border-color: #4a3020;
+    border-width: 2px;
+    border-radius: 4px;
+    background-color: #1a100a80;
+    transition: background-color 100ms;
+}
+
+param-slider.volume-slider:hover,
+param-slider.volume-slider:active {
+    background-color: #2a1a10a0;
+    transition: background-color 100ms;
+}
+
+param-slider.volume-slider .fill {
+    background-color: #c49030;
+    border-radius: 2px;
+}
+
+param-slider.volume-slider .fill--modulation {
+    background-color: #f0c87840;
+}
+
+param-slider.volume-slider label {
+    color: #f0deb0;
+    font-size: 12;
+}
+
+param-slider.volume-slider .value-entry {
+    background-color: transparent;
+    border-width: 0px;
+}
+
+param-slider.volume-slider .value-entry .caret {
+    background-color: #f0c878;
+}
