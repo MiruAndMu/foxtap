@@ -92,10 +92,13 @@ pub unsafe fn write_frames(
     header.write_pos.store(pos, Ordering::Release);
 }
 
-/// Write interleaved audio frames into the ring buffer while applying gain.
+/// Write interleaved audio frames into the ring buffer while applying a
+/// per-sample gain.
 ///
-/// This is intended for real-time audio code paths where allocating temporary
-/// gain buffers would be undesirable.
+/// `gain` must have at least `num_frames` entries — one multiplier per frame,
+/// e.g. from a smoothed parameter's `Smoother::next_block`. This is intended
+/// for real-time audio code paths where allocating temporary gain buffers
+/// would be undesirable, so the gain slice is caller-owned.
 ///
 /// # Safety
 /// `ring` must point to a valid `[f32; RING_SAMPLES]` in shared memory.
@@ -105,15 +108,16 @@ pub unsafe fn write_frames_with_gain(
     channels: usize,
     data: &[&[f32]],
     num_frames: usize,
-    gain: f32,
+    gain: &[f32],
 ) {
     let cap = RING_FRAMES as u64;
     let mut pos = header.write_pos.load(Ordering::Relaxed);
 
     for i in 0..num_frames {
         let idx = (pos % cap) as usize * MAX_CHANNELS;
+        let g = gain[i];
         for ch in 0..channels.min(MAX_CHANNELS) {
-            *ring.add(idx + ch) = data[ch][i] * gain;
+            *ring.add(idx + ch) = data[ch][i] * g;
         }
         // Zero any unused channels in the interleaved slot
         for ch in channels..MAX_CHANNELS {
@@ -188,7 +192,7 @@ mod tests {
         let data: [&[f32]; 2] = [&left, &right];
 
         unsafe {
-            write_frames_with_gain(&header, ring.as_mut_ptr(), 2, &data, 2, 0.5);
+            write_frames_with_gain(&header, ring.as_mut_ptr(), 2, &data, 2, &[0.5, 0.5]);
         }
 
         assert_eq!(ring[0], 0.5);
@@ -206,7 +210,7 @@ mod tests {
         let data: [&[f32]; 1] = [&mono];
 
         unsafe {
-            write_frames_with_gain(&header, ring.as_mut_ptr(), 1, &data, 1, 1.0);
+            write_frames_with_gain(&header, ring.as_mut_ptr(), 1, &data, 1, &[1.0]);
         }
 
         assert_eq!(ring[0], 0.75);

@@ -398,6 +398,9 @@ struct FoxTap {
     /// Tracks last write_pos seen — used to detect relay activity.
     last_check_write_pos: u64,
     process_count: u64,
+    /// Preallocated per-sample gain buffer for `stream_gain` smoothing, sized
+    /// in `initialize()` — never resized on the audio thread.
+    gain_buffer: Vec<f32>,
 }
 
 impl Default for FoxTap {
@@ -410,6 +413,7 @@ impl Default for FoxTap {
             relay_watchdog_stop: None,
             last_check_write_pos: 0,
             process_count: 0,
+            gain_buffer: Vec::new(),
         }
     }
 }
@@ -439,6 +443,10 @@ impl Default for FoxTapParams {
                 1.0,
                 FloatRange::Linear { min: 0.0, max: 1.0 },
             )
+            // Linear, not Logarithmic: the range legitimately reaches true 0.0
+            // (mute), which nih-plug's with_smoother() debug-asserts against
+            // for Logarithmic.
+            .with_smoother(SmoothingStyle::Linear(50.0))
             .with_unit(" %")
             .with_value_to_string(formatters::v2s_f32_percentage(0))
             .with_string_to_value(formatters::s2v_f32_percentage()),
@@ -484,6 +492,9 @@ impl Plugin for FoxTap {
         buffer_config: &BufferConfig,
         _context: &mut impl InitContext<Self>,
     ) -> bool {
+        self.gain_buffer
+            .resize(buffer_config.max_buffer_size as usize, 1.0);
+
         self.shm = ShmHandle::open();
         if let Some(ref shm) = self.shm {
             unsafe {
@@ -523,7 +534,6 @@ impl Plugin for FoxTap {
             if let Some(ref shm) = self.shm {
                 let num_frames = buffer.samples();
                 let channels = buffer.channels();
-                let gain = self.params.stream_gain.value();
                 let slices = buffer.as_slice_immutable();
                 let channel_count = channels.min(MAX_CHANNELS);
 
@@ -534,27 +544,23 @@ impl Plugin for FoxTap {
                 }
                 let channel_refs = &channel_refs[..channel_count];
 
-                if (gain - 1.0).abs() < f32::EPSILON {
-                    unsafe {
-                        foxtap_common::write_frames(
-                            &*shm.header,
-                            shm.ring,
-                            channels,
-                            channel_refs,
-                            num_frames,
-                        );
-                    }
-                } else {
-                    unsafe {
-                        foxtap_common::write_frames_with_gain(
-                            &*shm.header,
-                            shm.ring,
-                            channels,
-                            channel_refs,
-                            num_frames,
-                            gain,
-                        );
-                    }
+                // gain_buffer is preallocated in initialize() to max_buffer_size,
+                // so this never allocates on the audio thread.
+                let gain_buf = &mut self.gain_buffer[..num_frames];
+                self.params
+                    .stream_gain
+                    .smoothed
+                    .next_block(gain_buf, num_frames);
+
+                unsafe {
+                    foxtap_common::write_frames_with_gain(
+                        &*shm.header,
+                        shm.ring,
+                        channels,
+                        channel_refs,
+                        num_frames,
+                        gain_buf,
+                    );
                 }
 
                 // Check relay activity periodically (~every 1024 process calls)
